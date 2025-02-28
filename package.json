@@ -16,7 +16,8 @@
     "hls",
     "nodejs",
     "express",
-    "cache"
+    "cache",
+    "cors"
   ],
   "author": "",
   "license": "ISC",
