@@ -1,4 +1,4 @@
-// proxy-server.js - Standalone streaming proxy service
+// proxy-server.js - Standalone streaming proxy service with TS segment caching only
 const express = require('express');
 const path = require('path');
 const fetch = require('node-fetch');
@@ -7,7 +7,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Initialize cache with 10 minute TTL (time to live)
-const streamCache = new NodeCache({ 
+const tsCache = new NodeCache({ 
   stdTTL: 600, // 10 minutes in seconds
   checkperiod: 120 // Check for expired keys every 2 minutes
 });
@@ -29,17 +29,35 @@ app.get('/', (req, res) => {
 
 // Status endpoint with cache stats
 app.get('/status', (req, res) => {
-  const stats = streamCache.getStats();
+  const stats = tsCache.getStats();
   res.json({
     status: 'online',
     cacheStats: {
-      keys: streamCache.keys().length,
+      keys: tsCache.keys().length,
       hits: stats.hits,
       misses: stats.misses,
       ksize: stats.ksize,
       vsize: stats.vsize
     },
     uptime: process.uptime()
+  });
+});
+
+// Clear cache endpoint (protected by simple token)
+app.post('/clear-cache', (req, res) => {
+  const token = req.body.token;
+  
+  // Simple token validation - in production use a more secure method
+  if (token !== process.env.ADMIN_TOKEN && token !== 'admin-token') {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+  
+  const keysCount = tsCache.keys().length;
+  tsCache.flushAll();
+  
+  res.json({ 
+    success: true, 
+    message: `Cache cleared. ${keysCount} TS segments removed.` 
   });
 });
 
@@ -52,54 +70,61 @@ app.get('/proxy-stream/:url(*)', async (req, res) => {
   }
 
   try {
-    // For m3u8 playlist files, check if we have them in cache
-    if (streamUrl.endsWith('.m3u8')) {
-      const cachedContent = streamCache.get(streamUrl);
+    // Check if we have the TS segment in cache
+    if (streamUrl.endsWith('.ts')) {
+      const cachedSegment = tsCache.get(streamUrl);
       
-      if (cachedContent) {
-        console.log(`Serving cached m3u8 for: ${streamUrl}`);
+      if (cachedSegment) {
+        console.log(`Serving cached TS segment for: ${streamUrl}`);
         
         // Set the content type from cached metadata
-        if (cachedContent.contentType) {
-          res.setHeader('Content-Type', cachedContent.contentType);
+        if (cachedSegment.contentType) {
+          res.setHeader('Content-Type', cachedSegment.contentType);
         }
         
-        // Return the cached content
-        return res.send(cachedContent.data);
+        // Return the cached buffer
+        return res.send(cachedSegment.data);
       }
     }
     
-    // Not in cache, fetch from source
-    console.log(`Fetching stream from source: ${streamUrl}`);
+    // Not in cache or not a TS file, fetch from source
+    console.log(`Fetching from source: ${streamUrl}`);
     const response = await fetch(streamUrl);
     
     if (!response.ok) {
-      throw new Error(`Failed to fetch stream: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
     }
     
-    // Get content type and data
+    // Get content type and set response header
     const contentType = response.headers.get('content-type');
     if (contentType) {
       res.setHeader('Content-Type', contentType);
     }
     
-    // For m3u8 files we want to cache the content
+    // For m3u8 files we rewrite the content but don't cache it
     if (streamUrl.endsWith('.m3u8')) {
       const data = await response.text();
       
       // Rewrite the content to use our proxy for internal URLs
       const rewrittenData = rewriteM3u8Content(data, streamUrl);
       
-      // Cache the rewritten response
-      streamCache.set(streamUrl, {
-        data: rewrittenData,
-        contentType: contentType
-      });
-      
       // Send the rewritten response
       return res.send(rewrittenData);
     } 
-    // For segment files and other binary data, we stream directly without caching
+    // For TS segment files, cache the binary data
+    else if (streamUrl.endsWith('.ts')) {
+      const buffer = await response.buffer();
+      
+      // Cache the buffer
+      tsCache.set(streamUrl, {
+        data: buffer,
+        contentType: contentType
+      });
+      
+      // Send the response
+      return res.send(buffer);
+    }
+    // For other content, we stream directly without caching
     else {
       // Stream the response data to the client
       return response.body.pipe(res);
@@ -147,4 +172,6 @@ app.listen(PORT, () => {
   console.log(`  - GET /                   : Service info`);
   console.log(`  - GET /status             : Service status with cache stats`);
   console.log(`  - GET /proxy-stream/:url  : Proxy stream endpoint`);
+  console.log(`  - POST /clear-cache       : Clear cache (requires token)`);
+  console.log(`TS segments are cached for 10 minutes. M3U8 files are not cached.`);
 });
