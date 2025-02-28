@@ -1,7 +1,7 @@
 {
   "name": "stream-proxy-server",
   "version": "1.0.0",
-  "description": "A Node.js proxy server for streaming content with caching capabilities",
+  "description": "A Node.js proxy server for streaming content with caching capabilities for ts files only",
   "main": "proxy-server.js",
   "scripts": {
     "start": "node proxy-server.js",
@@ -12,8 +12,11 @@
     "proxy",
     "streaming",
     "m3u8",
+    "ts",
+    "hls",
     "nodejs",
-    "express"
+    "express",
+    "cache"
   ],
   "author": "",
   "license": "ISC",
