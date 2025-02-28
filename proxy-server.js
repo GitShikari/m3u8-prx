@@ -15,6 +15,20 @@ const tsCache = new NodeCache({
 // Middleware
 app.use(express.json());
 
+// Add CORS middleware
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
 // Simple status endpoint
 app.get('/', (req, res) => {
   res.json({ 
@@ -174,4 +188,5 @@ app.listen(PORT, () => {
   console.log(`  - GET /proxy-stream/:url  : Proxy stream endpoint`);
   console.log(`  - POST /clear-cache       : Clear cache (requires token)`);
   console.log(`TS segments are cached for 10 minutes. M3U8 files are not cached.`);
+  console.log(`CORS enabled for all origins`);
 });
