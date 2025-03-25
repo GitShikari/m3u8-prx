@@ -1,11 +1,9 @@
 const express = require('express');
 const axios = require('axios');
 const fetch = require('node-fetch');
-const NodeCache = require('node-cache');
 
 const app = express();
 const PORT = 3000;
-const tsCache = new NodeCache({ stdTTL: 600, checkperiod: 120 });
 
 // Middleware
 app.use(express.json());
@@ -37,37 +35,11 @@ app.get('/', (req, res) => {
   });
 });
 
-// Status endpoint with cache stats
+// Status endpoint
 app.get('/status', (req, res) => {
-  const stats = tsCache.getStats();
   res.json({
     status: 'online',
-    cacheStats: {
-      keys: tsCache.keys().length,
-      hits: stats.hits,
-      misses: stats.misses,
-      ksize: stats.ksize,
-      vsize: stats.vsize
-    },
     uptime: process.uptime()
-  });
-});
-
-// Clear cache endpoint
-app.post('/clear-cache', (req, res) => {
-  const token = req.body.token;
-  
-  // Simple token validation - in production use a more secure method
-  if (token !== process.env.ADMIN_TOKEN && token !== 'admin-token') {
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
-  
-  const keysCount = tsCache.keys().length;
-  tsCache.flushAll();
-  
-  res.json({ 
-    success: true, 
-    message: `Cache cleared. ${keysCount} TS segments removed.` 
   });
 });
 
@@ -102,7 +74,6 @@ app.get('/hindi.m3u8', async (req, res) => {
             });
 
             // Step 3: Return the data from the redirect link
-            // res.send(proxyResponse.data);
             res.redirect(`/proxy-stream/${redirectLink}`);
         } else {
             res.status(500).send({ error: 'No redirect link found' });
@@ -143,7 +114,6 @@ app.get('/willow.m3u8', async (req, res) => {
             });
 
             // Step 3: Return the data from the redirect link
-            // res.send(proxyResponse.data);
             res.redirect(`/proxy-stream/${redirectLink}`);
         } else {
             res.status(500).send({ error: 'No redirect link found' });
@@ -165,7 +135,6 @@ app.get('/fetch-stream/star.m3u8', async (req, res) => {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3',
                 'Connection': 'Keep-Alive',
-                // 'Accept-Encoding': 'gzip',
                 'X-User-Agent': 'Model: MAG250; Link: WiFi',
                 'Referer': 'http://tv.stream4k.cc/stalker_portal/c/',
                 'Authorization': 'Bearer A6538E64F7AA5985A0C03278C6457C39',
@@ -191,30 +160,12 @@ app.get('/proxy-stream/:url(*)', async (req, res) => {
     }
     
     try {
-        // Check if we have the TS segment in cache
-        if (streamUrl.endsWith('.ts')) {
-            const cachedSegment = tsCache.get(streamUrl);
-            
-            if (cachedSegment) {
-                console.log(`Serving cached TS segment for: ${streamUrl}`);
-                
-                // Set the content type from cached metadata
-                if (cachedSegment.contentType) {
-                    res.setHeader('Content-Type', cachedSegment.contentType);
-                }
-                
-                // Return the cached buffer
-                return res.send(cachedSegment.data);
-            }
-        }
-        
-        // Not in cache or not a TS file, fetch from source
+        // Fetch from source
         console.log(`Fetching from source: ${streamUrl}`);
         const response = await fetch(streamUrl, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3',
                 'Connection': 'Keep-Alive'
-                // 'Accept-Encoding': 'gzip' - commented out to avoid compression issues
             }
         });
         
@@ -228,7 +179,7 @@ app.get('/proxy-stream/:url(*)', async (req, res) => {
             res.setHeader('Content-Type', contentType);
         }
         
-        // For m3u8 files we rewrite the content but don't cache it
+        // For m3u8 files we rewrite the content
         if (streamUrl.endsWith('155967') || streamUrl.endsWith('m3u8') || streamUrl.endsWith('1141780')) {
             const data = await response.text();
             
@@ -238,22 +189,8 @@ app.get('/proxy-stream/:url(*)', async (req, res) => {
             // Send the rewritten response
             return res.send(rewrittenData);
         } 
-        // For TS segment files, cache the binary data
-        else if (streamUrl.endsWith('.ts')) {
-            const buffer = await response.buffer();
-            
-            // Cache the buffer
-            tsCache.set(streamUrl, {
-                data: buffer,
-                contentType: contentType
-            });
-            
-            // Send the response
-            return res.send(buffer);
-        }
-        // For other content, we stream directly without caching
+        // For other content, we stream directly
         else {
-            // Stream the response data to the client
             return response.body.pipe(res);
         }
     } catch (error) {
@@ -296,10 +233,8 @@ app.listen(PORT, () => {
     console.log(`Stream Proxy Server running on http://localhost:${PORT}`);
     console.log(`Available endpoints:`);
     console.log(`  - GET /                   : Service info`);
-    console.log(`  - GET /status             : Service status with cache stats`);
+    console.log(`  - GET /status             : Service status`);
     console.log(`  - GET /fetch-stream       : Fetch and redirect to stream`);
     console.log(`  - GET /proxy-stream/:url  : Proxy stream endpoint`);
-    console.log(`  - POST /clear-cache       : Clear cache (requires token)`);
-    console.log(`TS segments are cached for 10 minutes. M3U8 files are not cached.`);
     console.log(`CORS enabled for all origins`);
 });
