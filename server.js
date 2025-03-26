@@ -44,7 +44,7 @@ app.get('/status', (req, res) => {
 });
 
 app.get('/hindi.m3u8', async (req, res) => {
-    const url = 'http://protv.fun/play/live.php?mac=00:1A:79:73:0c:7d&stream=155967&extension=m3u8';
+    const url = 'https://st18.24cwc.com/hls/token/2aymysimhwynbklhgd8fy79k8/stream.m3u8';
     
     try {
         // Step 1: Fetch the redirect link
@@ -53,7 +53,8 @@ app.get('/hindi.m3u8', async (req, res) => {
                 'User-Agent': 'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 4 rev: 874 Mobile Safari/533.3',
                 'Connection': 'Keep-Alive',
                 'Accept-Encoding': 'identity',
-                'Icy-MetaData': '1'
+                'Icy-MetaData': '1',
+                'Referer': "https://s11.24cwc.com/"
             },
             maxRedirects: 0, // Prevent automatic redirects
             validateStatus: function (status) {
@@ -165,7 +166,8 @@ app.get('/proxy-stream/:url(*)', async (req, res) => {
         const response = await fetch(streamUrl, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3',
-                'Connection': 'Keep-Alive'
+                'Connection': 'Keep-Alive',
+                'Referer': "https://s11.24cwc.com/"
             }
         });
         
