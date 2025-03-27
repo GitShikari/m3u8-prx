@@ -143,7 +143,7 @@ app.get('/fetch-stream/star.m3u8', async (req, res) => {
             }
         });
         
-        const cmdUrl = response.data?.js?.cmd || '';
+        const cmdUrl = response.data?.js?.cmd || ''; 
         if (cmdUrl) {
             return res.redirect(`/proxy-stream/${cmdUrl}`);
         }
@@ -190,7 +190,7 @@ app.get('/proxy-stream/:url(*)', async (req, res) => {
             const data = await response.text();
             
             // Rewrite the content to use our proxy for internal URLs
-            const rewrittenData = rewriteM3u8Content(data, streamUrl);
+            const rewrittenData = rewriteM3u8Content(data, riyal);
             
             // Send the rewritten response
             return res.send(rewrittenData);
