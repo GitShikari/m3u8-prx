@@ -44,7 +44,7 @@ app.get('/status', (req, res) => {
 });
 
 app.get('/hindi.m3u8', async (req, res) => {
-    const url = 'https://st18.24cwc.com/hls/token/2aymysimhwynbklhgd8fy79k8/stream.m3u8';
+    const url = 'http://test.norpoqq.xyz:8080/live/9021721136867171/2e1f5b59e8a2/53687.m3u8';
     
     try {
         // Step 1: Fetch the redirect link
