@@ -155,7 +155,7 @@ app.get('/fetch-stream/star.m3u8', async (req, res) => {
 
 app.get('/proxy-stream/:url(*)', async (req, res) => {
     let streamUrl = req.params.url;
-
+    let riyal = req.params.url;
     if (req.query.token) {
         streamUrl += `?token=${req.query.token}`;
     }
@@ -186,7 +186,7 @@ app.get('/proxy-stream/:url(*)', async (req, res) => {
         }
         
         // For m3u8 files we rewrite the content
-        if (streamUrl.endsWith('155967') || streamUrl.endsWith('m3u8') || streamUrl.endsWith('1141780')) {
+        if (riyal.endsWith('155967') || riyal.endsWith('m3u8') || riyal.endsWith('1141780')) {
             const data = await response.text();
             
             // Rewrite the content to use our proxy for internal URLs
