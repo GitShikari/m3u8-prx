@@ -154,7 +154,12 @@ app.get('/fetch-stream/star.m3u8', async (req, res) => {
 });
 
 app.get('/proxy-stream/:url(*)', async (req, res) => {
-    const streamUrl = `${req.params.url}`;
+    app.get('/proxy-stream/:url(*)', async (req, res) => {
+    let streamUrl = req.params.url;
+
+    if (req.query.token) {
+        streamUrl += `?token=${req.query.token}`;
+    }
     
     if (!streamUrl) {
         return res.status(400).json({ error: 'Stream URL is required' });
