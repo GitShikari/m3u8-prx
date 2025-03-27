@@ -66,7 +66,7 @@ app.get('/hindi.m3u8', async (req, res) => {
             const redirectLink = response.headers.location;
 
             // Step 2: Use the /proxy-stream endpoint to fetch data from the redirect link
-            const proxyResponse = await axios.get(`http://localhost:${PORT}/proxy-stream/${encodeURIComponent(redirectLink)}`, {
+            const proxyResponse = await axios.get(`https://penguback.onrender.com/proxy-stream/${encodeURIComponent(redirectLink)}`, {
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 4 rev: 874 Mobile Safari/533.3',
                     'Connection': 'Keep-Alive',
@@ -106,7 +106,7 @@ app.get('/willow.m3u8', async (req, res) => {
             const redirectLink = response.headers.location;
 
             // Step 2: Use the /proxy-stream endpoint to fetch data from the redirect link
-            const proxyResponse = await axios.get(`http://localhost:${PORT}/proxy-stream/${encodeURIComponent(redirectLink)}`, {
+            const proxyResponse = await axios.get(`https://penguback.onrender.com/proxy-stream/${encodeURIComponent(redirectLink)}`, {
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 4 rev: 874 Mobile Safari/533.3',
                     'Connection': 'Keep-Alive',
