@@ -154,7 +154,6 @@ app.get('/fetch-stream/star.m3u8', async (req, res) => {
 });
 
 app.get('/proxy-stream/:url(*)', async (req, res) => {
-    app.get('/proxy-stream/:url(*)', async (req, res) => {
     let streamUrl = req.params.url;
 
     if (req.query.token) {
