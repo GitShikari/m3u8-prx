@@ -172,14 +172,16 @@ app.get('/proxy-stream/:url(*)', async (req, res) => {
     try {
         // Fetch from source
         console.log(`Fetching from source: ${streamUrl}`);
-        const response = await fetch(streamUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3',
-                'Connection': 'Keep-Alive',
-                // 'Referer': "https://player.castr.com/",
-                'Origin': 'https://vk.ru'
-            }
-        });
+        const response = await axios.get(streamUrl, {
+    headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0',
+        'Origin': 'https://vk.ru',
+        'Referer': 'https://vk.ru',
+        'Accept-Encoding': 'identity'
+    },
+    responseType: 'stream'
+});
+
         
         if (!response.ok) {
             throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
