@@ -176,8 +176,8 @@ app.get('/proxy-stream/:url(*)', async (req, res) => {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3',
                 'Connection': 'Keep-Alive',
-                'Referer': "https://player.castr.com/",
-                'origin': "https://ok.ru"
+                // 'Referer': "https://player.castr.com/",
+                'Origin': 'https://vk.ru'
             }
         });
         
