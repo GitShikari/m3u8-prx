@@ -160,62 +160,56 @@ app.get('/fetch-stream/star.m3u8', async (req, res) => {
 
 app.get('/proxy-stream/:url(*)', async (req, res) => {
     let streamUrl = req.params.url;
-    let riyal = req.params.url;
+
     if (req.query.token) {
         streamUrl += `?token=${req.query.token}`;
     }
-    
+
     if (!streamUrl) {
         return res.status(400).json({ error: 'Stream URL is required' });
     }
-    
-    try {
-        // Fetch from source
-        console.log(`Fetching from source: ${streamUrl}`);
-        const response = await axios.get(streamUrl, {
-    headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0',
-        'Origin': 'https://vk.ru',
-        'Referer': 'https://vk.ru',
-        'Accept-Encoding': 'identity'
-    },
-    responseType: 'stream'
-});
 
-        
-        if (!response.ok) {
+    try {
+        console.log(`Fetching from source: ${streamUrl}`);
+
+        const response = await axios.get(streamUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0',
+                'Origin': 'https://vk.ru',
+                'Referer': 'https://vk.ru',
+                'Accept-Encoding': 'identity'
+            },
+            responseType: 'stream'
+        });
+
+        if (response.status !== 200) {
             throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
         }
-        
-        // Get content type and set response header
-        const contentType = response.headers.get('content-type');
-        if (contentType) {
-            res.setHeader('Content-Type', contentType);
-        }
-        
-        // For m3u8 files we rewrite the content
-        if (riyal.endsWith('155967') || riyal.endsWith('m3u8') || riyal.endsWith('1141780')) {
-            const data = await response.text();
-            
-            // Rewrite the content to use our proxy for internal URLs
-            const rewrittenData = rewriteM3u8Content(data, riyal);
-            
-            // Send the rewritten response
-            return res.send(rewrittenData);
-        } 
-        // For other content, we stream directly
-        else {
-            return response.body.pipe(res);
+
+        // Set headers from the original response
+        res.setHeader('Content-Type', response.headers['content-type'] || 'application/vnd.apple.mpegurl');
+
+        if (streamUrl.endsWith('.m3u8')) {
+            let data = '';
+            response.data.on('data', (chunk) => {
+                data += chunk.toString();
+            });
+
+            response.data.on('end', () => {
+                const rewrittenData = rewriteM3u8Content(data, streamUrl);
+                res.send(rewrittenData);
+            });
+        } else {
+            response.data.pipe(res); // Stream content directly
         }
     } catch (error) {
-        console.error('Proxy stream error:', error);
+        console.error('Proxy stream error:', error.message);
         res.status(500).json({ error: 'Failed to proxy stream: ' + error.message });
     }
 });
 
 // Helper function to rewrite m3u8 content to use our proxy
 function rewriteM3u8Content(content, originalUrl) {
-    // Extract the origin (protocol + hostname) from the original URL
     let origin = '';
     try {
         const urlObj = new URL(originalUrl);
@@ -223,13 +217,10 @@ function rewriteM3u8Content(content, originalUrl) {
     } catch (e) {
         console.error('Error parsing original URL:', e);
     }
-    
-    // Get the base URL for relative paths in the m3u8 file
+
     const baseUrl = originalUrl.substring(0, originalUrl.lastIndexOf('/') + 1);
-    
-    // Rewrite segment URLs to go through our proxy
-    return content.replace(/^((?!#).+\.ts|.+\.m3u8)$/gm, function(match) {
-        // Handle absolute URLs, URLs starting with /, and relative URLs
+
+    return content.replace(/^((?!#).+\.ts|.+\.m3u8)$/gm, (match) => {
         let absoluteUrl;
         if (match.startsWith('http')) {
             absoluteUrl = match;
@@ -238,10 +229,11 @@ function rewriteM3u8Content(content, originalUrl) {
         } else {
             absoluteUrl = baseUrl + match;
         }
-        
+
         return `/proxy-stream/${absoluteUrl}`;
     });
 }
+
 
 app.listen(PORT, () => {
     console.log(`Stream Proxy Server running on http://localhost:${PORT}`);
